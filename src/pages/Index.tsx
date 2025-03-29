@@ -62,7 +62,7 @@ const Index = () => {
       </Tabs>
       
       <footer className="mt-6 text-center text-xs text-slate-400">
-        DevBuddy Boost v1.0.0 • Made with ❤️ for web developers
+        DevBuddy Boost v1.0.0
       </footer>
     </div>
   );
