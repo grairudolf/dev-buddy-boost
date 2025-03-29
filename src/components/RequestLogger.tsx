@@ -21,33 +21,45 @@ const RequestLogger = () => {
   const [logs, setLogs] = useState<RequestLog[]>([]);
   
   const fetchLogs = () => {
-    chrome.storage.local.get(['requestLogs'], (result) => {
-      const requestLogs = result.requestLogs || [];
-      setLogs(requestLogs);
-    });
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.get(['requestLogs'], (result) => {
+        const requestLogs = result.requestLogs || [];
+        setLogs(requestLogs);
+      });
+    } else {
+      console.log('Chrome storage API not available in this environment');
+    }
   };
   
   const clearLogs = () => {
-    chrome.storage.local.set({ requestLogs: [] }, () => {
-      setLogs([]);
-    });
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ requestLogs: [] }, () => {
+        setLogs([]);
+      });
+    } else {
+      console.log('Chrome storage API not available in this environment');
+    }
   };
   
   useEffect(() => {
     fetchLogs();
     
     // Listen for new logs
-    const listener = (message: any) => {
-      if (message.type === 'LOG_REQUEST') {
-        fetchLogs(); // Refresh logs when a new request is logged
-      }
-      return true;
-    };
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+      const listener = (message: any) => {
+        if (message.type === 'LOG_REQUEST') {
+          fetchLogs(); // Refresh logs when a new request is logged
+        }
+        return true;
+      };
+      
+      chrome.runtime.onMessage.addListener(listener);
+      return () => {
+        chrome.runtime.onMessage.removeListener(listener);
+      };
+    }
     
-    chrome.runtime.onMessage.addListener(listener);
-    return () => {
-      chrome.runtime.onMessage.removeListener(listener);
-    };
+    return undefined;
   }, []);
   
   const getStatusColor = (status: number) => {

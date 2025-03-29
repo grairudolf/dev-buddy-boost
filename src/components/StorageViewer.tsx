@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Database, Edit, Save, X, RefreshCw, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,24 +22,28 @@ const StorageViewer = () => {
   const [newItemValue, setNewItemValue] = useState('');
   
   const fetchStorageItems = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'GET_LOCAL_STORAGE' },
-          (response) => {
-            if (response && response.success) {
-              const items = Object.entries(response.data).map(([key, value]) => ({
-                key,
-                value,
-                editing: false
-              }));
-              setStorageItems(items);
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(
+            tabs[0].id,
+            { action: 'GET_LOCAL_STORAGE' },
+            (response) => {
+              if (response && response.success) {
+                const items = Object.entries(response.data).map(([key, value]) => ({
+                  key,
+                  value,
+                  editing: false
+                }));
+                setStorageItems(items);
+              }
             }
-          }
-        );
-      }
-    });
+          );
+        }
+      });
+    } else {
+      console.log('Chrome extension API not available in this environment');
+    }
   };
   
   useEffect(() => {
@@ -83,33 +86,37 @@ const StorageViewer = () => {
       }
     }
     
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { 
-            action: 'SET_LOCAL_STORAGE',
-            key: item.key,
-            value: parsedValue
-          },
-          (response) => {
-            if (response && response.success) {
-              const newItems = [...storageItems];
-              newItems[index].value = parsedValue;
-              newItems[index].editing = false;
-              delete newItems[index].editValue;
-              setStorageItems(newItems);
-              
-              toast({
-                title: "Storage Updated",
-                description: `Key "${item.key}" has been updated`,
-                duration: 2000,
-              });
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(
+            tabs[0].id,
+            { 
+              action: 'SET_LOCAL_STORAGE',
+              key: item.key,
+              value: parsedValue
+            },
+            (response) => {
+              if (response && response.success) {
+                const newItems = [...storageItems];
+                newItems[index].value = parsedValue;
+                newItems[index].editing = false;
+                delete newItems[index].editValue;
+                setStorageItems(newItems);
+                
+                toast({
+                  title: "Storage Updated",
+                  description: `Key "${item.key}" has been updated`,
+                  duration: 2000,
+                });
+              }
             }
-          }
-        );
-      }
-    });
+          );
+        }
+      });
+    } else {
+      console.log('Chrome extension API not available in this environment');
+    }
   };
   
   const addNewItem = () => {
@@ -137,32 +144,36 @@ const StorageViewer = () => {
       }
     }
     
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { 
-            action: 'SET_LOCAL_STORAGE',
-            key: newItemKey,
-            value: parsedValue
-          },
-          (response) => {
-            if (response && response.success) {
-              fetchStorageItems();
-              setIsOpen(false);
-              setNewItemKey('');
-              setNewItemValue('');
-              
-              toast({
-                title: "Storage Updated",
-                description: `Key "${newItemKey}" has been added`,
-                duration: 2000,
-              });
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(
+            tabs[0].id,
+            { 
+              action: 'SET_LOCAL_STORAGE',
+              key: newItemKey,
+              value: parsedValue
+            },
+            (response) => {
+              if (response && response.success) {
+                fetchStorageItems();
+                setIsOpen(false);
+                setNewItemKey('');
+                setNewItemValue('');
+                
+                toast({
+                  title: "Storage Updated",
+                  description: `Key "${newItemKey}" has been added`,
+                  duration: 2000,
+                });
+              }
             }
-          }
-        );
-      }
-    });
+          );
+        }
+      });
+    } else {
+      console.log('Chrome extension API not available in this environment');
+    }
   };
   
   return (

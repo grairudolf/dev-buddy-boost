@@ -15,33 +15,41 @@ const ColorPicker = () => {
   const [pickedColors, setPickedColors] = useState<PickedColor[]>([]);
   
   const startPicking = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'TOGGLE_COLOR_PICKER', value: true },
-          () => {
-            setIsPicking(true);
-          }
-        );
-      }
-    });
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(
+            tabs[0].id,
+            { action: 'TOGGLE_COLOR_PICKER', value: true },
+            () => {
+              setIsPicking(true);
+            }
+          );
+        }
+      });
+    } else {
+      console.log('Chrome extension API not available in this environment');
+    }
   };
   
   // Listen for color picked event
   useEffect(() => {
-    const listener = (message: any) => {
-      if (message.type === 'COLOR_PICKED') {
-        setPickedColors(prev => [message.data, ...prev].slice(0, 5));
-        setIsPicking(false);
-      }
-      return true;
-    };
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+      const listener = (message: any) => {
+        if (message.type === 'COLOR_PICKED') {
+          setPickedColors(prev => [message.data, ...prev].slice(0, 5));
+          setIsPicking(false);
+        }
+        return true;
+      };
+      
+      chrome.runtime.onMessage.addListener(listener);
+      return () => {
+        chrome.runtime.onMessage.removeListener(listener);
+      };
+    }
     
-    chrome.runtime.onMessage.addListener(listener);
-    return () => {
-      chrome.runtime.onMessage.removeListener(listener);
-    };
+    return undefined;
   }, []);
   
   const copyToClipboard = (color: string) => {

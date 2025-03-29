@@ -25,33 +25,43 @@ const DOMInspector = () => {
   const [activeTab, setActiveTab] = useState('properties');
 
   const startInspecting = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'TOGGLE_INSPECTOR', value: true },
-          () => {
-            setIsInspecting(true);
-          }
-        );
-      }
-    });
+    // Check if we're in a browser extension context
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(
+            tabs[0].id,
+            { action: 'TOGGLE_INSPECTOR', value: true },
+            () => {
+              setIsInspecting(true);
+            }
+          );
+        }
+      });
+    } else {
+      console.log('Chrome extension API not available in this environment');
+    }
   };
 
   // Listen for selected element info
   React.useEffect(() => {
-    const listener = (message: any) => {
-      if (message.type === 'ELEMENT_SELECTED') {
-        setElementInfo(message.data);
-        setIsInspecting(false);
-      }
-      return true;
-    };
+    // Only set up the listener if we're in a browser extension context
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+      const listener = (message: any) => {
+        if (message.type === 'ELEMENT_SELECTED') {
+          setElementInfo(message.data);
+          setIsInspecting(false);
+        }
+        return true;
+      };
 
-    chrome.runtime.onMessage.addListener(listener);
-    return () => {
-      chrome.runtime.onMessage.removeListener(listener);
-    };
+      chrome.runtime.onMessage.addListener(listener);
+      return () => {
+        chrome.runtime.onMessage.removeListener(listener);
+      };
+    }
+    
+    return undefined;
   }, []);
 
   const renderElementSelector = () => {
